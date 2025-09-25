@@ -1,22 +1,50 @@
 [
     {
-        "amount": 2000.0,
-        "category": "foods",
-        "description": "Grab"
+        "amount": 50.0,
+        "currency": "EUR",
+        "category": "Food",
+        "description": "Restaurant",
+        "user": "A",
+        "date": "2025-09-25"
     },
     {
         "amount": 5000.0,
-        "category": "transport",
-        "description": "concert ticket"
+        "currency": "IDR",
+        "category": "Tips",
+        "description": "Taxi driver",
+        "user": "A",
+        "date": "2025-09-25"
     },
     {
-        "amount": 3000.0,
-        "category": "food",
-        "description": "market"
+        "amount": 100.0,
+        "currency": "USD",
+        "category": "Gift",
+        "description": "Vendor gift",
+        "user": "A",
+        "date": "2025-09-25"
     },
     {
-        "amount": 12250.0,
-        "category": "Cosmetics",
-        "description": "Hair Salon"
+        "amount": 150.0,
+        "currency": "HKD",
+        "category": "SIM Card",
+        "description": "Local SIM Card",
+        "user": "A",
+        "date": "2025-09-25"
+    },
+    {
+        "amount": 350000.0,
+        "currency": "HUF",
+        "category": "Office Equipment",
+        "description": "Asus Laptop",
+        "user": "A",
+        "date": "2025-09-25"
+    },
+    {
+        "amount": 10000.0,
+        "currency": "HUF",
+        "category": "Else",
+        "description": "Personal ",
+        "user": "A",
+        "date": "2025-09-25"
     }
 ]
