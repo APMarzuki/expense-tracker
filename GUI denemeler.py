@@ -54,10 +54,12 @@ def load_expenses():
     try:
         with open("expenses.json", "r") as f:
             expenses = json.load(f)
-            # Add date field for old entries if it doesn't exist
+            # Add date and invoice field for old entries if they don't exist
             for exp in expenses:
                 if "date" not in exp:
                     exp["date"] = "N/A"
+                if "invoice" not in exp:
+                    exp["invoice"] = "N/A"
             messagebox.showinfo("Data Loaded", "Expenses have been loaded from file.")
     except FileNotFoundError:
         pass
@@ -81,8 +83,9 @@ def add_expense():
         user = user_combobox.get()
         currency = currency_combobox.get()
         date = date_entry.get()
+        invoice = invoice_entry.get()
 
-        if not category or not description or not user or not currency or not date:
+        if not category or not description or not user or not currency or not date or not invoice:
             messagebox.showerror("Input Error", "All fields must be filled.")
             return
 
@@ -92,7 +95,8 @@ def add_expense():
             "category": category,
             "description": description,
             "user": user,
-            "date": date
+            "date": date,
+            "invoice": invoice
         })
 
         save_expenses()
@@ -103,6 +107,7 @@ def add_expense():
         currency_combobox.set('HUF')
         date_entry.delete(0, tk.END)
         date_entry.insert(0, datetime.date.today().strftime('%Y-%m-%d'))
+        invoice_entry.delete(0, tk.END)
         update_expense_list()
         update_total()
         messagebox.showinfo("Success", "Expense added successfully.")
@@ -148,6 +153,8 @@ def modify_expense():
     currency_combobox.set(expense_to_modify.get("currency", "HUF"))
     date_entry.delete(0, tk.END)
     date_entry.insert(0, expense_to_modify.get("date", datetime.date.today().strftime('%Y-%m-%d')))
+    invoice_entry.delete(0, tk.END)
+    invoice_entry.insert(0, expense_to_modify.get("invoice", ""))
 
     # Set category correctly
     category = expense_to_modify["category"]
@@ -171,8 +178,9 @@ def save_modified_expense():
         new_user = user_combobox.get()
         new_currency = currency_combobox.get()
         new_date = date_entry.get()
+        new_invoice = invoice_entry.get()
 
-        if not new_category or not new_description or not new_user or not new_currency or not new_date:
+        if not new_category or not new_description or not new_user or not new_currency or not new_date or not new_invoice:
             messagebox.showerror("Input Error", "All fields must be filled.")
             return
 
@@ -182,7 +190,8 @@ def save_modified_expense():
             "category": new_category,
             "description": new_description,
             "user": new_user,
-            "date": new_date
+            "date": new_date,
+            "invoice": new_invoice
         }
 
         save_expenses()
@@ -198,6 +207,7 @@ def save_modified_expense():
         currency_combobox.set('HUF')
         date_entry.delete(0, tk.END)
         date_entry.insert(0, datetime.date.today().strftime('%Y-%m-%d'))
+        invoice_entry.delete(0, tk.END)
 
         update_expense_list()
         update_total()
@@ -216,7 +226,8 @@ def update_expense_list():
             currency = exp.get("currency", "HUF")
             amount = exp.get("amount", 0)
             date = exp.get("date", "N/A")
-            display_text = f"{date} | {amount:.2f} {currency} - {exp['category']} - {exp['description']} - by {user}"
+            invoice = exp.get("invoice", "N/A")
+            display_text = f"INV#{invoice} | {date} | {amount:.2f} {currency} - {exp['category']} - {exp['description']} - by {user}"
             expense_listbox.insert(tk.END, display_text)
 
 
@@ -275,7 +286,7 @@ def filter_expenses(event):
         exp for exp in expenses
         if query in exp.get("category", "").lower() or query in exp["description"].lower() or query in exp.get("user",
                                                                                                                "").lower() or query in exp.get(
-            "date", "").lower()
+            "date", "").lower() or query in exp.get("invoice", "").lower()
     ]
 
     for exp in filtered_expenses:
@@ -283,15 +294,18 @@ def filter_expenses(event):
         currency = exp.get("currency", "HUF")
         amount = exp.get("amount", 0)
         date = exp.get("date", "N/A")
-        display_text = f"{date} | {amount:.2f} {currency} - {exp['category']} - {exp['description']} - by {user}"
+        invoice = exp.get("invoice", "N/A")
+        display_text = f"INV#{invoice} | {date} | {amount:.2f} {currency} - {exp['category']} - {exp['description']} - by {user}"
         expense_listbox.insert(tk.END, display_text)
 
 
 def save_and_print_report():
     """Generates a PDF report for the selected user and opens it."""
     selected_user = user_combobox.get()
-    if not selected_user:
-        messagebox.showerror("Selection Error", "Please select a user to generate a report.")
+    report_number = report_number_entry.get()
+
+    if not selected_user or not report_number:
+        messagebox.showerror("Selection Error", "Please select a user and enter an expense report number.")
         return
 
     user_expenses = [exp for exp in expenses if exp.get("user") == selected_user]
@@ -300,7 +314,7 @@ def save_and_print_report():
         return
 
     # PDF generation logic
-    file_name = f"expense_report_{selected_user}_{datetime.date.today()}.pdf"
+    file_name = f"expense_report_{report_number}.pdf"
     doc = SimpleDocTemplate(file_name, pagesize=letter)
     story = []
 
@@ -309,22 +323,24 @@ def save_and_print_report():
     body_style = styles['Normal']
     body_style.spaceAfter = 12
 
-    # Title
-    title_text = f"Expense Report for {selected_user}"
+    # Title with report number
+    title_text = f"Expense Report #{report_number}"
     story.append(Paragraph(title_text, title_style))
     story.append(Spacer(1, 12))
 
-    # Date
-    story.append(Paragraph(f"Date: {datetime.date.today()}", body_style))
+    # User and Date
+    story.append(Paragraph(f"<b>User:</b> {selected_user}", body_style))
+    story.append(Paragraph(f"<b>Date:</b> {datetime.date.today()}", body_style))
     story.append(Spacer(1, 12))
 
     # Table of expenses
-    table_data = [['Date', 'Amount (HUF)', 'Original Amount', 'Currency', 'Category', 'Description']]
+    table_data = [['Invoice #', 'Date', 'Amount (HUF)', 'Original Amount', 'Currency', 'Category', 'Description']]
 
     total_huf_report = 0
     for exp in user_expenses:
         amount_huf = convert_to_huf(exp.get("amount", 0), exp.get("currency", "HUF"))
         table_data.append([
+            exp.get("invoice", "N/A"),
             exp.get("date", "N/A"),
             f"{amount_huf:.2f}",
             f"{exp['amount']:.2f}",
@@ -352,8 +368,8 @@ def save_and_print_report():
 
     # Total
     total_eur = total_huf_report * HUF_TO_EUR_RATE
-    story.append(Paragraph(f"Total Expenses for {selected_user}: {total_huf_report:.2f} HUF", body_style))
-    story.append(Paragraph(f"Total in EUR: {total_eur:.2f} EUR", body_style))
+    story.append(Paragraph(f"<b>Total Expenses for {selected_user}:</b> {total_huf_report:.2f} HUF", body_style))
+    story.append(Paragraph(f"<b>Total in EUR:</b> {total_eur:.2f} EUR", body_style))
     story.append(Spacer(1, 24))
 
     # Signature lines
@@ -365,8 +381,8 @@ def save_and_print_report():
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('BOX', (0, 0), (0, -1), 1, colors.black),  # employee box
-        ('BOX', (1, 0), (1, -1), 1, colors.black),  # approver box
+        ('BOX', (0, 0), (0, -1), 1, colors.black),
+        ('BOX', (1, 0), (1, -1), 1, colors.black),
         ('LEFTPADDING', (0, 0), (1, -1), 10),
         ('RIGHTPADDING', (0, 0), (1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (1, -1), 10),
@@ -395,7 +411,13 @@ def on_category_select(event):
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Expense Tracker")
-# root.iconbitmap('icon.ico')
+
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TFrame", background="#F0F0F0")
+style.configure("TButton", background="#007BFF", foreground="white", font=("Helvetica", 10, "bold"))
+style.map("TButton", background=[("active", "#0056b3")])
+style.configure("TLabel", background="#F0F0F0")
 
 input_frame = ttk.Frame(root, padding="10")
 input_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
@@ -403,45 +425,53 @@ display_frame = ttk.Frame(root, padding="10")
 display_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
 
 # --- Input Widgets ---
-ttk.Label(input_frame, text="Amount:").grid(row=0, column=0, sticky=tk.W)
-amount_entry = ttk.Entry(input_frame, width=15)
-amount_entry.grid(row=0, column=1, sticky=tk.W)
+ttk.Label(input_frame, text="Expense Report Number:").grid(row=0, column=0, sticky=tk.W)
+report_number_entry = ttk.Entry(input_frame, width=20)
+report_number_entry.grid(row=0, column=1, columnspan=2, sticky=tk.W)
 
-ttk.Label(input_frame, text="Currency:").grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
+ttk.Label(input_frame, text="Amount:").grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+amount_entry = ttk.Entry(input_frame, width=15)
+amount_entry.grid(row=1, column=1, sticky=tk.W, pady=(5, 0))
+
+ttk.Label(input_frame, text="Currency:").grid(row=1, column=2, sticky=tk.W, padx=(10, 0), pady=(5, 0))
 currency_combobox = ttk.Combobox(input_frame, values=list(CURRENCY_RATES.keys()), width=7)
-currency_combobox.grid(row=0, column=3, sticky=tk.W)
+currency_combobox.grid(row=1, column=3, sticky=tk.W, pady=(5, 0))
 currency_combobox.set('HUF')
 currency_combobox.config(state="readonly")
 
-ttk.Label(input_frame, text="Category:").grid(row=1, column=0, sticky=tk.W)
+ttk.Label(input_frame, text="Invoice Number:").grid(row=2, column=0, sticky=tk.W, pady=(5, 0))
+invoice_entry = ttk.Entry(input_frame, width=20)
+invoice_entry.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
+
+ttk.Label(input_frame, text="Category:").grid(row=3, column=0, sticky=tk.W, pady=(5, 0))
 category_combobox = ttk.Combobox(input_frame, values=categories, width=17)
 category_combobox.config(state="readonly")
-category_combobox.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
+category_combobox.grid(row=3, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
 category_combobox.bind("<<ComboboxSelected>>", on_category_select)
 
-ttk.Label(input_frame, text="Description:").grid(row=2, column=0, sticky=tk.W)
+ttk.Label(input_frame, text="Description:").grid(row=4, column=0, sticky=tk.W, pady=(5, 0))
 description_entry = ttk.Entry(input_frame, width=20)
-description_entry.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
+description_entry.grid(row=4, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
 
-ttk.Label(input_frame, text="User:").grid(row=3, column=0, sticky=tk.W)
+ttk.Label(input_frame, text="User:").grid(row=5, column=0, sticky=tk.W, pady=(5, 0))
 user_combobox = ttk.Combobox(input_frame, values=users, width=17)
-user_combobox.grid(row=3, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
+user_combobox.grid(row=5, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
 
-ttk.Label(input_frame, text="Date (YYYY-MM-DD):").grid(row=4, column=0, sticky=tk.W)
+ttk.Label(input_frame, text="Date (YYYY-MM-DD):").grid(row=6, column=0, sticky=tk.W, pady=(5, 0))
 date_entry = ttk.Entry(input_frame, width=20)
-date_entry.grid(row=4, column=1, columnspan=2, sticky=tk.W)
+date_entry.grid(row=6, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
 date_entry.insert(0, datetime.date.today().strftime('%Y-%m-%d'))
 
 add_button = ttk.Button(input_frame, text="Add Expense", command=add_expense)
-add_button.grid(row=5, column=0, columnspan=4, pady=10)
+add_button.grid(row=7, column=0, columnspan=4, pady=10)
 
-ttk.Label(input_frame, text="Search:").grid(row=6, column=0, sticky=tk.W, pady=(10, 0))
+ttk.Label(input_frame, text="Search:").grid(row=8, column=0, sticky=tk.W, pady=(10, 0))
 search_entry = ttk.Entry(input_frame, width=20)
-search_entry.grid(row=6, column=1, columnspan=2, pady=(10, 0))
+search_entry.grid(row=8, column=1, columnspan=2, pady=(10, 0))
 search_entry.bind("<KeyRelease>", filter_expenses)
 
 # --- Display Widgets ---
-expense_listbox = tk.Listbox(display_frame, height=10, width=60)
+expense_listbox = tk.Listbox(display_frame, height=10, width=80)
 expense_listbox.pack(pady=10)
 expense_listbox.bind('<<ListboxSelect>>', on_list_select)
 
