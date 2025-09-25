@@ -463,11 +463,11 @@ date_entry.grid(row=6, column=1, columnspan=2, sticky=tk.W, pady=(5, 0))
 date_entry.insert(0, datetime.date.today().strftime('%Y-%m-%d'))
 
 add_button = ttk.Button(input_frame, text="Add Expense", command=add_expense)
-add_button.grid(row=7, column=0, columnspan=4, pady=10)
+add_button.grid(row=7, column=0, sticky=tk.W, pady=10)
 
 ttk.Label(input_frame, text="Search:").grid(row=8, column=0, sticky=tk.W, pady=(10, 0))
 search_entry = ttk.Entry(input_frame, width=20)
-search_entry.grid(row=8, column=1, columnspan=2, pady=(10, 0))
+search_entry.grid(row=8, column=1, columnspan=2, sticky=tk.W, pady=(10, 0))
 search_entry.bind("<KeyRelease>", filter_expenses)
 
 # --- Display Widgets ---
